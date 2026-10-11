@@ -1,5 +1,8 @@
 package com.gharse.gharsebackend.seller;
 
-public class SellerProfileRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
 
+public interface SellerProfileRepository extends JpaRepository<SellerProfile, Long> {
+
+    boolean existsByUserId(Long userId);
 }

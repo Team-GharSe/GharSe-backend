@@ -1,5 +1,8 @@
 package com.gharse.gharsebackend.auth.dto;
 
-public class AuthResponse {
-
+public record AuthResponse(
+        String token,
+        String role,
+        Long userId,
+        String name) {
 }

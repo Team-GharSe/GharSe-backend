@@ -5,3 +5,6 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     show-sql: true
+app:
+  jwt:
+    secret: dev-only-change-this-secret-to-at-least-32-chars
