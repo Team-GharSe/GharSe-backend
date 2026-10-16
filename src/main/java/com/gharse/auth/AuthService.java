@@ -41,7 +41,7 @@ public class AuthService {
         user.setPasswordHash(encoder.encode(req.password()));
         user.setRole("USER");
         users.save(user);
-        return issue(user);
+        return issueFor(user);
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -50,20 +50,20 @@ public class AuthService {
         if (!encoder.matches(req.password(), user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid credentials.");
         }
-        return issue(user);
+        return issueFor(user);
     }
 
-    // Role is derived from the database, never from what the client claims.
-    private AuthResponse issue(User user) {
-        String role;
-        if ("ADMIN".equals(user.getRole())) {
-            role = "ADMIN";
-        } else if (sellers.existsByUserId(user.getId())) {
-            role = "SELLER";
-        } else {
-            role = "BUYER";
-        }
+    /** Issues a fresh token with the role derived from the database right now. */
+    public AuthResponse issueFor(User user) {
+        String role = resolveRole(user);
         String token = jwt.generate(user.getId(), role);
         return new AuthResponse(token, role, user.getId(), user.getName());
+    }
+
+    /** Role is derived from the database, never from what the client claims. */
+    public String resolveRole(User user) {
+        if ("ADMIN".equals(user.getRole())) return "ADMIN";
+        if (sellers.existsByUserId(user.getId())) return "SELLER";
+        return "BUYER";
     }
 }
