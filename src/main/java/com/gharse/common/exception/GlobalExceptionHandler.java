@@ -10,6 +10,9 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -17,6 +20,21 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiResponse<Void>> forbidden(AccessDeniedException e) {
+        return build(HttpStatus.FORBIDDEN, "You don't have permission to do that.");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiResponse<Void>> unreadable(HttpMessageNotReadableException e) {
+        return build(HttpStatus.BAD_REQUEST, "Request body is missing or malformed.");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ApiResponse<Void>> noResource(NoResourceFoundException e) {
+        return build(HttpStatus.NOT_FOUND, "Endpoint not found.");
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     ResponseEntity<ApiResponse<Void>> notFound(ResourceNotFoundException e) {

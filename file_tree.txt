@@ -6,6 +6,7 @@ GharSe-backend
 ├── LICENSE
 ├── README_SETUP.MD
 ├── build.gradle.kts
+├── file_tree.txt
 ├── gradle
 │   └── wrapper
 │       ├── gradle-wrapper.jar
@@ -18,96 +19,95 @@ GharSe-backend
     │   ├── java
     │   │   └── com
     │   │       └── gharse
-    │   │           └── gharsebackend
-    │   │               ├── GharSeBackendApplication.java
-    │   │               ├── admin
-    │   │               │   ├── AdminController.java
-    │   │               │   └── AdminService.java
-    │   │               ├── auth
-    │   │               │   ├── AuthController.java
-    │   │               │   ├── AuthService.java
-    │   │               │   ├── JwtUtil.java
-    │   │               │   └── dto
-    │   │               │       ├── AuthResponse.java
-    │   │               │       ├── LoginRequest.java
-    │   │               │       └── RegisterRequest.java
-    │   │               ├── cart
-    │   │               │   ├── Cart.java
-    │   │               │   ├── CartController.java
-    │   │               │   ├── CartItem.java
-    │   │               │   ├── CartItemRepository.java
-    │   │               │   ├── CartRepository.java
-    │   │               │   └── CartService.java
-    │   │               ├── catalog
-    │   │               │   ├── Category.java
-    │   │               │   ├── CategoryController.java
-    │   │               │   ├── CategoryRepository.java
-    │   │               │   ├── HaversineUtil.java
-    │   │               │   ├── Product.java
-    │   │               │   ├── ProductController.java
-    │   │               │   ├── ProductImage.java
-    │   │               │   ├── ProductImageRepository.java
-    │   │               │   ├── ProductRepository.java
-    │   │               │   └── ProductService.java
-    │   │               ├── common
-    │   │               │   ├── dto
-    │   │               │   │   └── ApiResponse.java
-    │   │               │   └── exception
-    │   │               │       ├── ConflictException.java
-    │   │               │       ├── GlobalExceptionHandler.java
-    │   │               │       ├── ResourceNotFoundException.java
-    │   │               │       └── UnauthorizedException.java
-    │   │               ├── config
-    │   │               │   ├── JwtAuthFilter.java
-    │   │               │   ├── SecurityConfig.java
-    │   │               │   └── WebConfig.java
-    │   │               ├── health
-    │   │               │   └── HealthController.java
-    │   │               ├── notification
-    │   │               │   ├── Notification.java
-    │   │               │   ├── NotificationController.java
-    │   │               │   ├── NotificationRepository.java
-    │   │               │   └── NotificationService.java
-    │   │               ├── order
-    │   │               │   ├── Order.java
-    │   │               │   ├── OrderController.java
-    │   │               │   ├── OrderItem.java
-    │   │               │   ├── OrderItemRepository.java
-    │   │               │   ├── OrderRepository.java
-    │   │               │   ├── OrderService.java
-    │   │               │   └── OrderStatusValidator.java
-    │   │               ├── payment
-    │   │               │   ├── Payment.java
-    │   │               │   ├── PaymentController.java
-    │   │               │   ├── PaymentRepository.java
-    │   │               │   ├── PaymentService.java
-    │   │               │   ├── RazorpayService.java
-    │   │               │   └── WebhookController.java
-    │   │               ├── review
-    │   │               │   ├── Review.java
-    │   │               │   ├── ReviewController.java
-    │   │               │   ├── ReviewRepository.java
-    │   │               │   └── ReviewService.java
-    │   │               ├── seller
-    │   │               │   ├── SellerController.java
-    │   │               │   ├── SellerProfile.java
-    │   │               │   ├── SellerProfileRepository.java
-    │   │               │   └── SellerService.java
-    │   │               ├── support
-    │   │               │   ├── SupportController.java
-    │   │               │   ├── SupportQuery.java
-    │   │               │   ├── SupportRepository.java
-    │   │               │   └── SupportService.java
-    │   │               ├── user
-    │   │               │   ├── User.java
-    │   │               │   ├── UserController.java
-    │   │               │   ├── UserRepository.java
-    │   │               │   └── UserService.java
-    │   │               └── verification
-    │   │                   ├── VerificationController.java
-    │   │                   ├── VerificationRepository.java
-    │   │                   ├── VerificationRequest.java
-    │   │                   └── VerificationService.java
+    │   │           ├── GharSeBackendApplication.java
+    │   │           ├── admin
+    │   │           │   ├── AdminController.java
+    │   │           │   └── AdminService.java
+    │   │           ├── auth
+    │   │           │   ├── AuthController.java
+    │   │           │   ├── AuthService.java
+    │   │           │   ├── JwtUtil.java
+    │   │           │   └── dto
+    │   │           │       ├── AuthResponse.java
+    │   │           │       ├── LoginRequest.java
+    │   │           │       └── RegisterRequest.java
+    │   │           ├── cart
+    │   │           │   ├── Cart.java
+    │   │           │   ├── CartController.java
+    │   │           │   ├── CartItem.java
+    │   │           │   ├── CartItemRepository.java
+    │   │           │   ├── CartRepository.java
+    │   │           │   └── CartService.java
+    │   │           ├── catalog
+    │   │           │   ├── Category.java
+    │   │           │   ├── CategoryController.java
+    │   │           │   ├── CategoryRepository.java
+    │   │           │   ├── HaversineUtil.java
+    │   │           │   ├── Product.java
+    │   │           │   ├── ProductController.java
+    │   │           │   ├── ProductImage.java
+    │   │           │   ├── ProductImageRepository.java
+    │   │           │   ├── ProductRepository.java
+    │   │           │   └── ProductService.java
+    │   │           ├── common
+    │   │           │   ├── dto
+    │   │           │   │   └── ApiResponse.java
+    │   │           │   └── exception
+    │   │           │       ├── ConflictException.java
+    │   │           │       ├── GlobalExceptionHandler.java
+    │   │           │       ├── ResourceNotFoundException.java
+    │   │           │       └── UnauthorizedException.java
+    │   │           ├── config
+    │   │           │   ├── JwtAuthFilter.java
+    │   │           │   ├── SecurityConfig.java
+    │   │           │   └── WebConfig.java
+    │   │           ├── health
+    │   │           │   └── HealthController.java
+    │   │           ├── notification
+    │   │           │   ├── Notification.java
+    │   │           │   ├── NotificationController.java
+    │   │           │   ├── NotificationRepository.java
+    │   │           │   └── NotificationService.java
+    │   │           ├── order
+    │   │           │   ├── Order.java
+    │   │           │   ├── OrderController.java
+    │   │           │   ├── OrderItem.java
+    │   │           │   ├── OrderItemRepository.java
+    │   │           │   ├── OrderRepository.java
+    │   │           │   ├── OrderService.java
+    │   │           │   └── OrderStatusValidator.java
+    │   │           ├── payment
+    │   │           │   ├── Payment.java
+    │   │           │   ├── PaymentController.java
+    │   │           │   ├── PaymentRepository.java
+    │   │           │   ├── PaymentService.java
+    │   │           │   ├── RazorpayService.java
+    │   │           │   └── WebhookController.java
+    │   │           ├── review
+    │   │           │   ├── Review.java
+    │   │           │   ├── ReviewController.java
+    │   │           │   ├── ReviewRepository.java
+    │   │           │   └── ReviewService.java
+    │   │           ├── seller
+    │   │           │   ├── SellerController.java
+    │   │           │   ├── SellerProfile.java
+    │   │           │   ├── SellerProfileRepository.java
+    │   │           │   └── SellerService.java
+    │   │           ├── support
+    │   │           │   ├── SupportController.java
+    │   │           │   ├── SupportQuery.java
+    │   │           │   ├── SupportRepository.java
+    │   │           │   └── SupportService.java
+    │   │           ├── user
+    │   │           │   ├── User.java
+    │   │           │   ├── UserController.java
+    │   │           │   ├── UserRepository.java
+    │   │           │   └── UserService.java
+    │   │           └── verification
+    │   │               ├── VerificationController.java
+    │   │               ├── VerificationRepository.java
+    │   │               ├── VerificationRequest.java
+    │   │               └── VerificationService.java
     │   └── resources
     │       ├── application-dev.yaml
     │       ├── application-prod.yaml
@@ -121,5 +121,4 @@ GharSe-backend
         └── java
             └── com
                 └── gharse
-                    └── gharsebackend
-                        └── GharSeBackendApplicationTests.java
+                    └── GharSeBackendApplicationTests.java
