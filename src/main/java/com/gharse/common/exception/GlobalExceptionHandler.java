@@ -36,6 +36,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "Endpoint not found.");
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    ResponseEntity<ApiResponse<Void>> badRequest(BadRequestException e) {
+        return build(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     ResponseEntity<ApiResponse<Void>> notFound(ResourceNotFoundException e) {
         return build(HttpStatus.NOT_FOUND, e.getMessage());
