@@ -17,9 +17,9 @@ public record ProductRequest(
         @NotNull FulfilmentType fulfilmentType,
         @Min(0) Integer inventoryQty,
         @Min(1) Integer productionTimeMinutesPerUnit,
-        boolean supportsSelfDelivery,
-        boolean supportsPickup,
-        boolean supportsPostal,
+        Boolean supportsSelfDelivery,
+        Boolean supportsPickup,
+        Boolean supportsPostal,
         @DecimalMin("0.1") BigDecimal deliveryRadiusKm
 ) {
 }

@@ -95,10 +95,17 @@ public class ProductService {
 
     /** Copies request fields onto the entity and enforces the fulfilment rules. */
     private void apply(Product p, ProductRequest r) {
-        if (!r.supportsSelfDelivery() && !r.supportsPickup() && !r.supportsPostal()) {
+        // The request now sends true/false as optional values (Boolean, can be null).
+        // These three lines turn "missing" into false, so the rest of the method
+        // can use plain true/false.
+        boolean selfDelivery = Boolean.TRUE.equals(r.supportsSelfDelivery());
+        boolean pickup = Boolean.TRUE.equals(r.supportsPickup());
+        boolean postal = Boolean.TRUE.equals(r.supportsPostal());
+
+        if (!selfDelivery && !pickup && !postal) {
             throw new BadRequestException("Choose at least one way to fulfil this product: self delivery, pickup or postal.");
         }
-        if (r.supportsSelfDelivery() && r.deliveryRadiusKm() == null) {
+        if (selfDelivery && r.deliveryRadiusKm() == null) {
             throw new BadRequestException("A delivery radius is needed for self delivery.");
         }
 
@@ -121,10 +128,10 @@ public class ProductService {
         p.setPrice(r.price());
         p.setCategoryId(r.categoryId());
         p.setFulfilmentType(r.fulfilmentType());
-        p.setSupportsSelfDelivery(r.supportsSelfDelivery());
-        p.setSupportsPickup(r.supportsPickup());
-        p.setSupportsPostal(r.supportsPostal());
-        p.setDeliveryRadiusKm(r.supportsSelfDelivery() ? r.deliveryRadiusKm() : null);
+        p.setSupportsSelfDelivery(selfDelivery);
+        p.setSupportsPickup(pickup);
+        p.setSupportsPostal(postal);
+        p.setDeliveryRadiusKm(selfDelivery ? r.deliveryRadiusKm() : null);
     }
 
     private ProductResponse toResponse(Product p) {
