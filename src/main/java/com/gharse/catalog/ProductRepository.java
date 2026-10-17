@@ -10,6 +10,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Buyer-facing detail: inactive listings are invisible. */
     Optional<Product> findByIdAndActiveTrue(Long id);
 
+    /** Every active listing, used by search. */
+    List<Product> findByActiveTrue();
+
     /** Seller ownership check for edit and delete. */
     Optional<Product> findByIdAndSellerProfileId(Long id, Long sellerProfileId);
 
