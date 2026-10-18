@@ -148,8 +148,9 @@ public class ProductQueryService {
     private ProductResponse toDetail(Product p) {
         SellerProfile s = sellers.findById(p.getSellerProfileId()).orElse(null);
         Category c = categories.findById(p.getCategoryId()).orElse(null);
-        List<String> urls = images.findByProductIdOrderByDisplayOrderAsc(p.getId()).stream()
-                .map(ProductImage::getImageUrl).toList();
+        List<ProductResponse.Photo> photos = images.findByProductIdOrderByDisplayOrderAsc(p.getId()).stream()
+                .map(i -> new ProductResponse.Photo(i.getId(), i.getImageUrl(), i.getDisplayOrder()))
+                .toList();
         boolean inStock = p.getFulfilmentType() == FulfilmentType.MADE_TO_ORDER
                 || (p.getInventoryQty() != null && p.getInventoryQty() > 0);
         return new ProductResponse(
@@ -159,7 +160,7 @@ public class ProductQueryService {
                 p.getFulfilmentType(), p.getInventoryQty(), p.getProductionTimeMinutesPerUnit(),
                 p.isSupportsSelfDelivery(), p.isSupportsPickup(), p.isSupportsPostal(),
                 p.getDeliveryRadiusKm(), p.isVerified(), p.getAverageRating(), p.getReviewCount(),
-                p.isActive(), inStock, urls.isEmpty() ? null : urls.get(0), urls);
+                p.isActive(), inStock, photos.isEmpty() ? null : photos.get(0).imageUrl(), photos);
     }
 
     /** Simple page wrapper returned to the controller. */
