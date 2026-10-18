@@ -3,6 +3,10 @@ spring:
     name: GharSe-backend
   profiles:
     active: dev
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 15MB
   jpa:
     hibernate:
       ddl-auto: validate
