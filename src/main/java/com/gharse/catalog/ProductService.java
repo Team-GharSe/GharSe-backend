@@ -176,9 +176,9 @@ public class ProductService {
         String sellerName = sellers.findById(p.getSellerProfileId())
                 .map(SellerProfile::getBusinessName)
                 .orElse("");
-        List<String> imageUrls = images.findByProductIdOrderByDisplayOrderAsc(p.getId())
+        List<ProductResponse.Photo> photos = images.findByProductIdOrderByDisplayOrderAsc(p.getId())
                 .stream()
-                .map(ProductImage::getImageUrl)
+                .map(i -> new ProductResponse.Photo(i.getId(), i.getImageUrl(), i.getDisplayOrder()))
                 .toList();
 
         boolean inStock = p.getFulfilmentType() == FulfilmentType.MADE_TO_ORDER
@@ -205,8 +205,8 @@ public class ProductService {
                 p.getReviewCount(),
                 p.isActive(),
                 inStock,
-                imageUrls.isEmpty() ? null : imageUrls.get(0),
-                imageUrls
+                photos.isEmpty() ? null : photos.get(0).imageUrl(),
+                photos
         );
     }
 }
