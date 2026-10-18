@@ -27,6 +27,10 @@ public record ProductResponse(
         boolean active,
         boolean inStock,
         String imageUrl,
-        List<String> images
+        List<Photo> images
 ) {
+
+    /** One photo. The id is what the seller sends to remove it: DELETE /v1/products/{id}/photos/{imageId}. */
+    public record Photo(Long id, String imageUrl, int displayOrder) {
+    }
 }
