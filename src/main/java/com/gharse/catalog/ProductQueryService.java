@@ -3,14 +3,16 @@ package com.gharse.catalog;
 import com.gharse.catalog.dto.ProductResponse;
 import com.gharse.catalog.dto.ProductSearchResult;
 import com.gharse.common.exception.ResourceNotFoundException;
+import com.gharse.order.OrderItemRepository;
+import com.gharse.order.OrderStatus;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,13 +26,16 @@ public class ProductQueryService {
     private final ProductImageRepository images;
     private final CategoryRepository categories;
     private final SellerProfileRepository sellers;
+    private final OrderItemRepository orderItems;
 
     public ProductQueryService(ProductRepository products, ProductImageRepository images,
-                               CategoryRepository categories, SellerProfileRepository sellers) {
+                               CategoryRepository categories, SellerProfileRepository sellers,
+                               OrderItemRepository orderItems) {
         this.products = products;
         this.images = images;
         this.categories = categories;
         this.sellers = sellers;
+        this.orderItems = orderItems;
     }
 
     /** Filters, Haversine radius, and sort. Pagination is applied after sorting in memory. */
@@ -58,8 +63,7 @@ public class ProductQueryService {
 
         int from = Math.min((page - 1) * pageSize, rows.size());
         int to = Math.min(from + pageSize, rows.size());
-        List<ProductSearchResult> slice = rows.subList(from, to);
-        return new Page<>(slice, page, pageSize, rows.size());
+        return new Page<>(rows.subList(from, to), page, pageSize, rows.size());
     }
 
     public ProductResponse getById(Long id) {
@@ -70,8 +74,7 @@ public class ProductQueryService {
 
     /**
      * READY_STOCK: { inStock, quantityRemaining }.
-     * MADE_TO_ORDER: { estimatedReadyDate }, from the live backlog of CONFIRMED and IN_PRODUCTION orders.
-     * The backlog query is added with the orders module (G); until then it is 0.
+     * MADE_TO_ORDER: { estimatedReadyDate }, based on the live backlog of CONFIRMED and IN_PRODUCTION orders.
      */
     public Map<String, Object> eta(Long id) {
         Product p = products.findByIdAndActiveTrue(id)
@@ -81,9 +84,10 @@ public class ProductQueryService {
             int qty = p.getInventoryQty() == null ? 0 : p.getInventoryQty();
             return Map.of("inStock", qty > 0, "quantityRemaining", qty);
         }
-        int backlogUnits = 0; // TODO(module G): SUM(quantity) of CONFIRMED/IN_PRODUCTION order items
-        int minutes = (backlogUnits + 1) * p.getProductionTimeMinutesPerUnit();
-        LocalDate ready = LocalDate.now().plusDays(minutes / (60L * 24) + (minutes % (60L * 24) > 0 ? 1 : 0));
+        long backlogUnits = orderItems.sumBacklogUnits(p.getId(),
+                List.of(OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION));
+        long minutes = (backlogUnits + 1) * p.getProductionTimeMinutesPerUnit();
+        LocalDate ready = LocalDate.now().plusDays((minutes + 60 * 24 - 1) / (60 * 24));
         return Map.of("estimatedReadyDate", ready.toString());
     }
 
@@ -124,22 +128,19 @@ public class ProductQueryService {
     }
 
     /** Verified first (FR8); then nearest when location is given, else newest. */
-    private java.util.Comparator<ProductSearchResult> comparator(String sort, boolean hasLocation) {
-        java.util.Comparator<ProductSearchResult> verifiedFirst =
-                (a, b) -> Boolean.compare(b.verified(), a.verified());
+    private Comparator<ProductSearchResult> comparator(String sort, boolean hasLocation) {
+        Comparator<ProductSearchResult> verifiedFirst = (a, b) -> Boolean.compare(b.verified(), a.verified());
         if (sort == null || sort.isBlank() || "recommended".equals(sort)) {
             if (hasLocation) {
                 return verifiedFirst.thenComparing(ProductSearchResult::distanceKm,
-                        java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+                        Comparator.nullsLast(Comparator.naturalOrder()));
             }
-            return verifiedFirst.thenComparing(ProductSearchResult::id, java.util.Comparator.reverseOrder());
+            return verifiedFirst.thenComparing(ProductSearchResult::id, Comparator.reverseOrder());
         }
         return switch (sort) {
-            case "newest" -> java.util.Comparator.comparing(ProductSearchResult::id,
-                    java.util.Comparator.reverseOrder());
-            case "price_asc" -> java.util.Comparator.comparing(ProductSearchResult::price);
-            case "price_desc" -> java.util.Comparator.comparing(ProductSearchResult::price,
-                    java.util.Comparator.reverseOrder());
+            case "newest" -> Comparator.comparing(ProductSearchResult::id, Comparator.reverseOrder());
+            case "price_asc" -> Comparator.comparing(ProductSearchResult::price);
+            case "price_desc" -> Comparator.comparing(ProductSearchResult::price, Comparator.reverseOrder());
             default -> verifiedFirst;
         };
     }

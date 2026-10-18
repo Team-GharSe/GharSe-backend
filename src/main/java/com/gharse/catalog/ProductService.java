@@ -9,25 +9,31 @@ import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @Service
 public class ProductService {
 
+    private static final int MAX_PHOTOS = 3;
+
     private final ProductRepository products;
     private final ProductImageRepository images;
     private final CategoryRepository categories;
     private final SellerProfileRepository sellers;
+    private final ImageStorage storage;
 
     public ProductService(ProductRepository products,
                           ProductImageRepository images,
                           CategoryRepository categories,
-                          SellerProfileRepository sellers) {
+                          SellerProfileRepository sellers,
+                          ImageStorage storage) {
         this.products = products;
         this.images = images;
         this.categories = categories;
         this.sellers = sellers;
+        this.storage = storage;
     }
 
     @Transactional
@@ -69,6 +75,38 @@ public class ProductService {
                 .toList();
     }
 
+    @Transactional
+    public ProductResponse addPhotos(AuthenticatedUser user, Long productId, List<MultipartFile> files) {
+        SellerProfile seller = currentSeller(user);
+        Product product = ownedProduct(productId, seller);
+
+        int existing = images.findByProductIdOrderByDisplayOrderAsc(productId).size();
+        if (existing + files.size() > MAX_PHOTOS) {
+            throw new BadRequestException("A product can have at most " + MAX_PHOTOS + " photos.");
+        }
+        int order = existing;
+        for (MultipartFile file : files) {
+            ProductImage image = new ProductImage();
+            image.setProductId(product.getId());
+            image.setImageUrl(storage.save(file));
+            image.setDisplayOrder(order++);
+            images.save(image);
+        }
+        return toResponse(product);
+    }
+
+    @Transactional
+    public ProductResponse removePhoto(AuthenticatedUser user, Long productId, Long imageId) {
+        SellerProfile seller = currentSeller(user);
+        Product product = ownedProduct(productId, seller);
+        ProductImage image = images.findById(imageId)
+                .filter(i -> i.getProductId().equals(product.getId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Photo not found."));
+        storage.delete(image.getImageUrl());
+        images.delete(image);
+        return toResponse(product);
+    }
+
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
@@ -95,9 +133,6 @@ public class ProductService {
 
     /** Copies request fields onto the entity and enforces the fulfilment rules. */
     private void apply(Product p, ProductRequest r) {
-        // The request now sends true/false as optional values (Boolean, can be null).
-        // These three lines turn "missing" into false, so the rest of the method
-        // can use plain true/false.
         boolean selfDelivery = Boolean.TRUE.equals(r.supportsSelfDelivery());
         boolean pickup = Boolean.TRUE.equals(r.supportsPickup());
         boolean postal = Boolean.TRUE.equals(r.supportsPostal());
