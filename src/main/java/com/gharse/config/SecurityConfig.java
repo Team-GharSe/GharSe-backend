@@ -38,6 +38,8 @@ public class SecurityConfig {
                         // Public browsing (FR5–FR10, FR24)
                         .requestMatchers(HttpMethod.GET,
                                 "/v1/products/**", "/v1/categories", "/v1/seller/*").permitAll()
+                        // Product photos are public so buyers can see them.
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthFilter(jwt), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
