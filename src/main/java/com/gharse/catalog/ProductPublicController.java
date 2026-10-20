@@ -9,15 +9,21 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import com.gharse.review.ReviewService;
+import com.gharse.review.dto.ReviewResponse;
+
 @RestController
 @RequestMapping("/v1")
 public class ProductPublicController {
 
     private final ProductQueryService service;
+    private final ReviewService reviewService;
 
-    public ProductPublicController(ProductQueryService service) {
+    public ProductPublicController(ProductQueryService service, ReviewService reviewService) {
         this.service = service;
+        this.reviewService = reviewService;
     }
+
 
     @GetMapping("/products/search")
     public ApiResponse<ProductQueryService.Page<ProductSearchResult>> search(
@@ -48,8 +54,8 @@ public class ProductPublicController {
     }
 
     @GetMapping("/products/{productId}/reviews")
-    public ApiResponse<List<Object>> reviews(@PathVariable Long productId) {
-        return ApiResponse.ok(service.reviews(productId));
+    public ApiResponse<List<ReviewResponse>> reviews(@PathVariable Long productId) {
+        return ApiResponse.ok(reviewService.listForProduct(productId));
     }
 
     @GetMapping("/categories")
