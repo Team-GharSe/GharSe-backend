@@ -2,6 +2,8 @@ package com.gharse.payment;
 
 import com.gharse.common.exception.ResourceNotFoundException;
 import com.gharse.order.FulfilmentMode;
+import com.gharse.order.Order;
+import com.gharse.order.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -13,6 +15,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class PaymentStatusServiceTest {
@@ -21,11 +24,12 @@ class PaymentStatusServiceTest {
     private static final long PAYMENT_ID = 5L;
 
     private final PaymentRepository payments = mock(PaymentRepository.class);
+    private final OrderRepository orders = mock(OrderRepository.class);
     private PaymentStatusService service;
 
     @BeforeEach
     void setUp() {
-        service = new PaymentStatusService(payments);
+        service = new PaymentStatusService(payments, orders);
     }
 
     private Payment payment() {
@@ -45,6 +49,7 @@ class PaymentStatusServiceTest {
         assertEquals(PaymentStatus.PENDING, r.status());
         assertNull(r.orderId());
         verify(payments).findByPaymentIdAndBuyerId(PAYMENT_ID, BUYER);
+        verifyNoInteractions(orders);
     }
 
     @Test
@@ -58,6 +63,28 @@ class PaymentStatusServiceTest {
         failed.markFailed();
         when(payments.findByPaymentIdAndBuyerId(6L, BUYER)).thenReturn(Optional.of(failed));
         assertEquals(PaymentStatus.FAILED, service.getStatus(BUYER, 6L).status());
+    }
+
+    @Test
+    void successfulPaymentIncludesTheOrderId() {
+        Payment p = payment();
+        p.markSuccess(LocalDateTime.now());
+        Order order = new Order(PAYMENT_ID, BUYER, 2L, FulfilmentMode.PICKUP, null);
+        ReflectionTestUtils.setField(order, "id", 9L);
+        when(orders.findByPaymentId(PAYMENT_ID)).thenReturn(Optional.of(order));
+
+        PaymentStatusResponse r = service.getStatus(BUYER, PAYMENT_ID);
+
+        assertEquals(PaymentStatus.SUCCESS, r.status());
+        assertEquals(9L, r.orderId());
+    }
+
+    @Test
+    void successWithoutAnOrderRowReturnsNullOrderId() {
+        Payment p = payment();
+        p.markSuccess(LocalDateTime.now());
+
+        assertNull(service.getStatus(BUYER, PAYMENT_ID).orderId());
     }
 
     @Test

@@ -21,10 +21,14 @@ public class WebhookController {
 
     private final RazorpaySignatureVerifier verifier;
     private final JsonMapper jsonMapper;
+    private final PaymentWebhookService webhookService;
 
-    public WebhookController(RazorpaySignatureVerifier verifier, JsonMapper jsonMapper) {
+    public WebhookController(RazorpaySignatureVerifier verifier,
+                             JsonMapper jsonMapper,
+                             PaymentWebhookService webhookService) {
         this.verifier = verifier;
         this.jsonMapper = jsonMapper;
+        this.webhookService = webhookService;
     }
 
     @PostMapping("/webhook")
@@ -50,8 +54,8 @@ public class WebhookController {
         }
 
         switch (event.event()) {
-            case "payment.captured" -> onCaptured(event);
-            case "payment.failed" -> onFailed(event);
+            case "payment.captured" -> webhookService.handleCaptured(event.paymentEntity());
+            case "payment.failed" -> webhookService.handleFailed(event.paymentEntity());
             default -> log.info("Webhook event ignored: {}", event.event());
         }
         return ack("received");
@@ -59,17 +63,5 @@ public class WebhookController {
 
     private ResponseEntity<ApiResponse<Void>> ack(String message) {
         return ResponseEntity.ok(ApiResponse.<Void>ok(message, null));
-    }
-
-    private void onCaptured(RazorpayWebhookEvent event) {
-        // Step 3: delegate to PaymentService (lock Payment, amount check, create Order, etc.)
-        RazorpayWebhookEvent.PaymentEntity p = event.paymentEntity();
-        log.info("payment.captured received for razorpay order {}", p == null ? null : p.orderId());
-    }
-
-    private void onFailed(RazorpayWebhookEvent event) {
-        // Step 3: delegate to PaymentService (mark FAILED)
-        RazorpayWebhookEvent.PaymentEntity p = event.paymentEntity();
-        log.info("payment.failed received for razorpay order {}", p == null ? null : p.orderId());
     }
 }
