@@ -17,4 +17,5 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from GharSeOrder o where o.id = :id and o.sellerProfileId = :sellerId")
     Optional<Order> findOwnedForUpdate(@Param("id") Long id, @Param("sellerId") Long sellerId);
+    Optional<Order> findByPaymentId(Long paymentId);
 }
