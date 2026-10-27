@@ -10,12 +10,14 @@ import com.gharse.order.Order;
 import com.gharse.order.OrderItem;
 import com.gharse.order.OrderItemRepository;
 import com.gharse.order.OrderRepository;
+import com.gharse.order.OrderStatusChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +43,7 @@ public class PaymentWebhookService {
     private final CartRepository carts;
     private final CartItemRepository cartItems;
     private final TransactionTemplate tx;
+    private final ApplicationEventPublisher events;
 
     public PaymentWebhookService(PaymentRepository payments,
                                  PaymentItemRepository paymentItems,
@@ -49,7 +52,8 @@ public class PaymentWebhookService {
                                  ProductRepository products,
                                  CartRepository carts,
                                  CartItemRepository cartItems,
-                                 PlatformTransactionManager transactionManager) {
+                                 PlatformTransactionManager transactionManager,
+                                 ApplicationEventPublisher events) {
         this.payments = payments;
         this.paymentItems = paymentItems;
         this.orders = orders;
@@ -58,6 +62,7 @@ public class PaymentWebhookService {
         this.carts = carts;
         this.cartItems = cartItems;
         this.tx = new TransactionTemplate(transactionManager);
+        this.events = events;
     }
 
     /**
@@ -154,6 +159,7 @@ public class PaymentWebhookService {
         }
         payment.markSuccess(LocalDateTime.now());
         clearCart(payment.getBuyerId(), snapshot);
+        events.publishEvent(OrderStatusChangedEvent.of(order, null));
 
         log.info("Order {} booked for payment {}", order.getId(), paymentId);
     }

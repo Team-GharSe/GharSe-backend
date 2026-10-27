@@ -6,6 +6,8 @@ import com.gharse.common.exception.UnauthorizedException;
 import com.gharse.order.dto.OrderResponse;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,19 +20,28 @@ public class OrderService {
     private final OrderRepository orders;
     private final OrderItemRepository items;
     private final SellerProfileRepository sellers;
+    private final ApplicationEventPublisher events;
 
+    /** Kept for tests that build the service by hand. Publishes nothing. */
     public OrderService(OrderRepository orders, OrderItemRepository items,
                         SellerProfileRepository sellers) {
+        this(orders, items, sellers, event -> { });
+    }
+
+    @Autowired
+    public OrderService(OrderRepository orders, OrderItemRepository items,
+                        SellerProfileRepository sellers, ApplicationEventPublisher events) {
         this.orders = orders;
         this.items = items;
         this.sellers = sellers;
+        this.events = events;
     }
 
     public List<OrderResponse> myOrders(AuthenticatedUser user) {
         requireParticipant(user);
         // An onboarded seller may still read orders they previously bought.
         return orders.findByBuyerIdOrderByCreatedAtDescIdDesc(user.id())
-            .stream().map(this::response).toList();
+                .stream().map(this::response).toList();
     }
 
     public OrderResponse getOrder(AuthenticatedUser user, Long orderId) {
@@ -38,7 +49,7 @@ public class OrderService {
         Order order = orders.findById(orderId).orElseThrow(OrderService::notFound);
         boolean buyer = Objects.equals(order.getBuyerId(), user.id());
         boolean owningSeller = !buyer && "SELLER".equals(user.role())
-            && sellers.findById(order.getSellerProfileId())
+                && sellers.findById(order.getSellerProfileId())
                 .map(profile -> Objects.equals(profile.getUserId(), user.id()))
                 .orElse(false);
         if (!buyer && !owningSeller) throw notFound();
@@ -48,8 +59,8 @@ public class OrderService {
     public List<OrderResponse> sellerOrders(AuthenticatedUser user, OrderStatus status) {
         SellerProfile seller = currentSeller(user);
         List<Order> result = status == null
-            ? orders.findBySellerProfileIdOrderByCreatedAtDescIdDesc(seller.getId())
-            : orders.findBySellerProfileIdAndStatusOrderByCreatedAtDescIdDesc(seller.getId(), status);
+                ? orders.findBySellerProfileIdOrderByCreatedAtDescIdDesc(seller.getId())
+                : orders.findBySellerProfileIdAndStatusOrderByCreatedAtDescIdDesc(seller.getId(), status);
         return result.stream().map(this::response).toList();
     }
 
@@ -59,9 +70,12 @@ public class OrderService {
         // Scope by seller AND lock before reading status. A concurrent PATCH then
         // validates against the committed new state instead of a stale copy.
         Order order = orders.findOwnedForUpdate(orderId, seller.getId())
-            .orElseThrow(OrderService::notFound);
+                .orElseThrow(OrderService::notFound);
+        OrderStatus previous = order.getStatus();
         order.transitionTo(requested);
         Order saved = orders.saveAndFlush(order);
+        // Delivered to listeners only after this transaction commits (see module J).
+        events.publishEvent(OrderStatusChangedEvent.of(saved, previous));
         return response(saved);
     }
 
@@ -69,7 +83,7 @@ public class OrderService {
         requireIdentity(user);
         if (!"SELLER".equals(user.role())) throw new AccessDeniedException("Seller role required.");
         return sellers.findByUserId(user.id())
-            .orElseThrow(() -> new ResourceNotFoundException("Seller profile not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Seller profile not found."));
     }
 
     private static void requireParticipant(AuthenticatedUser user) {

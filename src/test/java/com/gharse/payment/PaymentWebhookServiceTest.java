@@ -13,12 +13,14 @@ import com.gharse.order.OrderItem;
 import com.gharse.order.OrderItemRepository;
 import com.gharse.order.OrderRepository;
 import com.gharse.order.OrderStatus;
+import com.gharse.order.OrderStatusChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -49,6 +51,7 @@ class PaymentWebhookServiceTest {
     private final ProductRepository products = mock(ProductRepository.class);
     private final CartRepository carts = mock(CartRepository.class);
     private final CartItemRepository cartItems = mock(CartItemRepository.class);
+    private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
     private PaymentWebhookService service;
     private Payment payment;
@@ -58,7 +61,7 @@ class PaymentWebhookServiceTest {
     @BeforeEach
     void setUp() {
         service = new PaymentWebhookService(payments, paymentItems, orders, orderItems, products,
-                carts, cartItems, mock(PlatformTransactionManager.class));
+                carts, cartItems, mock(PlatformTransactionManager.class), events);
 
         payment = new Payment(BUYER, SELLER, new BigDecimal("250.00"), FulfilmentMode.PICKUP, null);
         ReflectionTestUtils.setField(payment, "paymentId", PAYMENT_ID);
@@ -336,5 +339,44 @@ class PaymentWebhookServiceTest {
 
         assertDoesNotThrow(() -> service.handleFailed(entity(1L, "INR", "order_unknown")));
         assertDoesNotThrow(() -> service.handleFailed(null));
+    }
+
+    // ---------------- booking event (module J) ----------------
+
+    @Test
+    void bookingPublishesOneConfirmedEventWithTheNewOrder() {
+        service.handleCaptured(captured());
+
+        ArgumentCaptor<Object> published = ArgumentCaptor.forClass(Object.class);
+        verify(events, times(1)).publishEvent(published.capture());
+        OrderStatusChangedEvent event = assertInstanceOf(OrderStatusChangedEvent.class, published.getValue());
+        assertEquals(90L, event.orderId());
+        assertEquals(BUYER, event.buyerId());
+        assertEquals(SELLER, event.sellerProfileId());
+        assertEquals(FulfilmentMode.PICKUP, event.fulfilmentMode());
+        assertNull(event.previousStatus());
+        assertEquals(OrderStatus.CONFIRMED, event.newStatus());
+    }
+
+    @Test
+    void nothingBookedPublishesNothing() {
+        service.handleCaptured(entity(100L, "INR", RZP_ORDER)); // amount mismatch
+        payment.markSuccess(LocalDateTime.now());
+        service.handleCaptured(captured());                     // duplicate
+
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void conflictThenSuccessPublishesExactlyOnce() {
+        when(products.findById(5L)).thenAnswer(inv ->
+                Optional.of(product(5, "Cake", "100.00", FulfilmentType.READY_STOCK, 10)));
+        doThrow(new OptimisticLockingFailureException("conflict"))
+                .doAnswer(inv -> inv.getArgument(0))
+                .when(products).saveAndFlush(any(Product.class));
+
+        service.handleCaptured(captured());
+
+        verify(events, times(1)).publishEvent(any(Object.class));
     }
 }
