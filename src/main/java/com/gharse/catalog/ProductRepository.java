@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import com.gharse.catalog.FulfilmentType;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
@@ -12,6 +13,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /** Every active listing, used by search. */
     List<Product> findByActiveTrue();
+
+    /** Seller's active made-to-order listings, for the backlog view. */
+    List<Product> findBySellerProfileIdAndActiveTrueAndFulfilmentType(Long sellerProfileId, FulfilmentType fulfilmentType);
 
     /** Seller ownership check for edit and delete. */
     Optional<Product> findByIdAndSellerProfileId(Long id, Long sellerProfileId);

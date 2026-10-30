@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/** Actual uploaded SecurityConfig/JWT filter + MVC, mocked service; no MySQL needed. */
+/** Actual uploaded SecurityConfig/JWT filter + MVC, mocked services; no MySQL needed. */
 @ExtendWith(SpringExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = OrderHttpTest.Config.class)
@@ -38,6 +38,7 @@ class OrderHttpTest {
     @Import({SecurityConfig.class, OrderController.class, GlobalExceptionHandler.class})
     static class Config {
         @Bean OrderService orderService() { return mock(OrderService.class); }
+        @Bean SellerAnalyticsService sellerAnalyticsService() { return mock(SellerAnalyticsService.class); }
         @Bean JwtUtil jwtUtil() {
             // Ephemeral test key. Never copies or commits an application secret.
             return new JwtUtil(UUID.randomUUID().toString() + UUID.randomUUID());
@@ -57,7 +58,7 @@ class OrderHttpTest {
     void setUp() {
         reset(service);
         mvc = MockMvcBuilders.webAppContextSetup(context)
-            .apply(SecurityMockMvcConfigurers.springSecurity()).build();
+                .apply(SecurityMockMvcConfigurers.springSecurity()).build();
         buyerToken = "Bearer " + jwt.generate(20L, "BUYER");
         sellerToken = "Bearer " + jwt.generate(30L, "SELLER");
     }
@@ -65,14 +66,14 @@ class OrderHttpTest {
     @Test
     void noTokenIs401() throws Exception {
         mvc.perform(get("/v1/orders/me")).andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.success").value(false));
         verifyNoInteractions(service);
     }
 
     @Test
     void badTokenIs401() throws Exception {
         mvc.perform(get("/v1/orders/me").header("Authorization", "Bearer invalid"))
-            .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized());
         verifyNoInteractions(service);
     }
 
@@ -80,8 +81,8 @@ class OrderHttpTest {
     void validBuyerTokenInjectsActualAuthenticatedUser() throws Exception {
         when(service.myOrders(buyer)).thenReturn(List.of());
         mvc.perform(get("/v1/orders/me").header("Authorization", buyerToken))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.status").value(200)).andExpect(jsonPath("$.data").isArray());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value(200)).andExpect(jsonPath("$.data").isArray());
         verify(service).myOrders(buyer);
     }
 
@@ -89,7 +90,7 @@ class OrderHttpTest {
     void callerSuppliedIdentityIsNotUsed() throws Exception {
         when(service.myOrders(buyer)).thenReturn(List.of());
         mvc.perform(get("/v1/orders/me?buyerId=999&role=ADMIN").header("Authorization", buyerToken))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         verify(service).myOrders(buyer);
     }
 
@@ -97,21 +98,21 @@ class OrderHttpTest {
     void sellerCanListOwnPurchases() throws Exception {
         when(service.myOrders(seller)).thenReturn(List.of());
         mvc.perform(get("/v1/orders/me").header("Authorization", sellerToken))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         verify(service).myOrders(seller);
     }
 
     @Test
     void adminHasNoOrderAccessOverride() throws Exception {
         mvc.perform(get("/v1/orders/10").header("Authorization", "Bearer " + jwt.generate(1L, "ADMIN")))
-            .andExpect(status().isForbidden()).andExpect(jsonPath("$.status").value(403));
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.status").value(403));
         verifyNoInteractions(service);
     }
 
     @Test
     void buyerCannotListSellerOrders() throws Exception {
         mvc.perform(get("/v1/seller/me/orders").header("Authorization", buyerToken))
-            .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
 
@@ -119,7 +120,7 @@ class OrderHttpTest {
     void sellerFilterIsPassedAsEnum() throws Exception {
         when(service.sellerOrders(seller, OrderStatus.READY)).thenReturn(List.of());
         mvc.perform(get("/v1/seller/me/orders?status=READY").header("Authorization", sellerToken))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         verify(service).sellerOrders(seller, OrderStatus.READY);
     }
 
@@ -127,40 +128,40 @@ class OrderHttpTest {
     void absentSellerFilterIsNull() throws Exception {
         when(service.sellerOrders(seller, null)).thenReturn(List.of());
         mvc.perform(get("/v1/seller/me/orders").header("Authorization", sellerToken))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         verify(service).sellerOrders(seller, null);
     }
 
     @Test
     void invalidStatusFilterIs400Not500() throws Exception {
         mvc.perform(get("/v1/seller/me/orders?status=INVALID").header("Authorization", sellerToken))
-            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
         verifyNoInteractions(service);
     }
 
     @Test
     void invalidOrderIdIs400() throws Exception {
         mvc.perform(get("/v1/orders/not-a-number").header("Authorization", buyerToken))
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
 
     @Test
     void buyerCannotPatchStatus() throws Exception {
         mvc.perform(patch("/v1/orders/10/status").header("Authorization", buyerToken)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_PRODUCTION\"}"))
-            .andExpect(status().isForbidden());
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_PRODUCTION\"}"))
+                .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
 
     @Test
     void validPatchCallsServiceWithVerifiedSeller() throws Exception {
         OrderResponse response = new OrderResponse(10L, 1L, 20L, 70L, OrderStatus.IN_PRODUCTION,
-            FulfilmentMode.PICKUP, null, null, null, List.of());
+                FulfilmentMode.PICKUP, null, null, null, List.of());
         when(service.updateStatus(seller, 10L, OrderStatus.IN_PRODUCTION)).thenReturn(response);
         mvc.perform(patch("/v1/orders/10/status").header("Authorization", sellerToken)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_PRODUCTION\"}"))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("IN_PRODUCTION"));
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"IN_PRODUCTION\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("IN_PRODUCTION"));
         verify(service).updateStatus(seller, 10L, OrderStatus.IN_PRODUCTION);
     }
 
@@ -168,8 +169,8 @@ class OrderHttpTest {
     void missingAndUnknownBodyStatusesAre400() throws Exception {
         for (String body : List.of("{}", "{\"status\":null}", "{\"status\":\"INVALID\"}", "{")) {
             mvc.perform(patch("/v1/orders/10/status").header("Authorization", sellerToken)
-                    .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value(400));
         }
         verifyNoInteractions(service);
     }
@@ -178,7 +179,7 @@ class OrderHttpTest {
     void inaccessibleOrderKeepsExisting404Envelope() throws Exception {
         when(service.getOrder(buyer, 10L)).thenThrow(new ResourceNotFoundException("Order not found."));
         mvc.perform(get("/v1/orders/10").header("Authorization", buyerToken))
-            .andExpect(status().isNotFound()).andExpect(jsonPath("$.success").value(false))
-            .andExpect(jsonPath("$.status").value(404));
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(404));
     }
 }

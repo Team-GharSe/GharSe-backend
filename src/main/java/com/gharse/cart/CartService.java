@@ -6,6 +6,9 @@ import com.gharse.common.exception.ConflictException;
 import com.gharse.common.exception.ResourceNotFoundException;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
+import com.gharse.catalog.FulfilmentType;
+import com.gharse.catalog.EtaCalculator;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +30,16 @@ public class CartService {
     private final CartItemRepository items;
     private final ProductRepository products;
     private final SellerProfileRepository sellers;
+    private final EtaCalculator etaCalculator;
 
     public CartService(CartRepository carts, CartItemRepository items,
-                       ProductRepository products, SellerProfileRepository sellers) {
+                       ProductRepository products, SellerProfileRepository sellers,
+                       EtaCalculator etaCalculator) {
         this.carts = carts;
         this.items = items;
         this.products = products;
         this.sellers = sellers;
+        this.etaCalculator = etaCalculator;
     }
 
     @Transactional(readOnly = true)
@@ -133,8 +139,12 @@ public class CartService {
                 throw new IllegalStateException("Cart item references a missing product: " + row.getProductId());
             }
             BigDecimal lineTotal = p.getPrice().multiply(BigDecimal.valueOf(row.getQuantity()));
+            LocalDate eta = null;
+            if (p.getFulfilmentType() == FulfilmentType.MADE_TO_ORDER) {
+                eta = etaCalculator.estimatedReadyDate(p, row.getQuantity());
+            }
             lines.add(new CartView.Line(p.getId(), p.getName(), p.getPrice(),
-                    row.getQuantity(), lineTotal, p.isActive()));
+                    row.getQuantity(), lineTotal, p.isActive(), eta));
             if (p.isActive()) {
                 subtotal = subtotal.add(lineTotal);
             }
