@@ -7,6 +7,7 @@ import com.gharse.order.OrderItemRepository;
 import com.gharse.order.OrderStatus;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
+import com.gharse.catalog.dto.BacklogItem;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -161,6 +162,25 @@ public class ProductQueryService {
                 p.isSupportsSelfDelivery(), p.isSupportsPickup(), p.isSupportsPostal(),
                 p.getDeliveryRadiusKm(), p.isVerified(), p.getAverageRating(), p.getReviewCount(),
                 p.isActive(), inStock, photos.isEmpty() ? null : photos.get(0).imageUrl(), photos);
+    }
+
+    /** Seller backlog: committed units and estimated clear date for each made-to-order listing. */
+    public List<BacklogItem> sellerBacklog(Long sellerProfileId) {
+        List<OrderStatus> open = List.of(OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION);
+        LocalDate today = LocalDate.now();
+
+        return products.findBySellerProfileIdAndActiveTrueAndFulfilmentType(
+                        sellerProfileId, FulfilmentType.MADE_TO_ORDER)
+                .stream()
+                .map(p -> {
+                    long units = orderItems.sumBacklogUnits(p.getId(), open);
+                    int perUnit = p.getProductionTimeMinutesPerUnit() == null
+                            ? 0 : p.getProductionTimeMinutesPerUnit();
+                    long minutes = units * perUnit;
+                    LocalDate clear = today.plusDays((minutes + 60 * 24 - 1) / (60 * 24));
+                    return new BacklogItem(p.getId(), p.getName(), units, perUnit, clear.toString());
+                })
+                .toList();
     }
 
     /** Simple page wrapper returned to the controller. */

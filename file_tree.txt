@@ -13,112 +13,187 @@ GharSe-backend
 │       └── gradle-wrapper.properties
 ├── gradlew
 ├── gradlew.bat
+├── scripts
+│   ├── auth-smoke.sh
+│   ├── catalog-smoke.sh
+│   ├── orders-smoke.sh
+│   └── product-smoke.sh
 ├── settings.gradle.kts
-└── src
-    ├── main
-    │   ├── java
-    │   │   └── com
-    │   │       └── gharse
-    │   │           ├── GharSeBackendApplication.java
-    │   │           ├── admin
-    │   │           │   ├── AdminController.java
-    │   │           │   └── AdminService.java
-    │   │           ├── auth
-    │   │           │   ├── AuthController.java
-    │   │           │   ├── AuthService.java
-    │   │           │   ├── JwtUtil.java
-    │   │           │   └── dto
-    │   │           │       ├── AuthResponse.java
-    │   │           │       ├── LoginRequest.java
-    │   │           │       └── RegisterRequest.java
-    │   │           ├── cart
-    │   │           │   ├── Cart.java
-    │   │           │   ├── CartController.java
-    │   │           │   ├── CartItem.java
-    │   │           │   ├── CartItemRepository.java
-    │   │           │   ├── CartRepository.java
-    │   │           │   └── CartService.java
-    │   │           ├── catalog
-    │   │           │   ├── Category.java
-    │   │           │   ├── CategoryController.java
-    │   │           │   ├── CategoryRepository.java
-    │   │           │   ├── HaversineUtil.java
-    │   │           │   ├── Product.java
-    │   │           │   ├── ProductController.java
-    │   │           │   ├── ProductImage.java
-    │   │           │   ├── ProductImageRepository.java
-    │   │           │   ├── ProductRepository.java
-    │   │           │   └── ProductService.java
-    │   │           ├── common
-    │   │           │   ├── dto
-    │   │           │   │   └── ApiResponse.java
-    │   │           │   └── exception
-    │   │           │       ├── ConflictException.java
-    │   │           │       ├── GlobalExceptionHandler.java
-    │   │           │       ├── ResourceNotFoundException.java
-    │   │           │       └── UnauthorizedException.java
-    │   │           ├── config
-    │   │           │   ├── JwtAuthFilter.java
-    │   │           │   ├── SecurityConfig.java
-    │   │           │   └── WebConfig.java
-    │   │           ├── health
-    │   │           │   └── HealthController.java
-    │   │           ├── notification
-    │   │           │   ├── Notification.java
-    │   │           │   ├── NotificationController.java
-    │   │           │   ├── NotificationRepository.java
-    │   │           │   └── NotificationService.java
-    │   │           ├── order
-    │   │           │   ├── Order.java
-    │   │           │   ├── OrderController.java
-    │   │           │   ├── OrderItem.java
-    │   │           │   ├── OrderItemRepository.java
-    │   │           │   ├── OrderRepository.java
-    │   │           │   ├── OrderService.java
-    │   │           │   └── OrderStatusValidator.java
-    │   │           ├── payment
-    │   │           │   ├── Payment.java
-    │   │           │   ├── PaymentController.java
-    │   │           │   ├── PaymentRepository.java
-    │   │           │   ├── PaymentService.java
-    │   │           │   ├── RazorpayService.java
-    │   │           │   └── WebhookController.java
-    │   │           ├── review
-    │   │           │   ├── Review.java
-    │   │           │   ├── ReviewController.java
-    │   │           │   ├── ReviewRepository.java
-    │   │           │   └── ReviewService.java
-    │   │           ├── seller
-    │   │           │   ├── SellerController.java
-    │   │           │   ├── SellerProfile.java
-    │   │           │   ├── SellerProfileRepository.java
-    │   │           │   └── SellerService.java
-    │   │           ├── support
-    │   │           │   ├── SupportController.java
-    │   │           │   ├── SupportQuery.java
-    │   │           │   ├── SupportRepository.java
-    │   │           │   └── SupportService.java
-    │   │           ├── user
-    │   │           │   ├── User.java
-    │   │           │   ├── UserController.java
-    │   │           │   ├── UserRepository.java
-    │   │           │   └── UserService.java
-    │   │           └── verification
-    │   │               ├── VerificationController.java
-    │   │               ├── VerificationRepository.java
-    │   │               ├── VerificationRequest.java
-    │   │               └── VerificationService.java
-    │   └── resources
-    │       ├── application-dev.yaml
-    │       ├── application-prod.yaml
-    │       ├── application.yaml
-    │       ├── db
-    │       │   └── migration
-    │       │       └── V1__init_schema.sql
-    │       ├── static
-    │       └── templates
-    └── test
-        └── java
-            └── com
-                └── gharse
-                    └── GharSeBackendApplicationTests.java
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── gharse
+│   │   │           ├── GharSeBackendApplication.java
+│   │   │           ├── admin
+│   │   │           │   ├── AdminController.java
+│   │   │           │   └── AdminService.java
+│   │   │           ├── auth
+│   │   │           │   ├── AuthController.java
+│   │   │           │   ├── AuthService.java
+│   │   │           │   ├── AuthenticatedUser.java
+│   │   │           │   ├── JwtUtil.java
+│   │   │           │   └── dto
+│   │   │           │       ├── AuthResponse.java
+│   │   │           │       ├── LoginRequest.java
+│   │   │           │       └── RegisterRequest.java
+│   │   │           ├── cart
+│   │   │           │   ├── AddCartItemRequest.java
+│   │   │           │   ├── Cart.java
+│   │   │           │   ├── CartController.java
+│   │   │           │   ├── CartItem.java
+│   │   │           │   ├── CartItemRepository.java
+│   │   │           │   ├── CartRepository.java
+│   │   │           │   ├── CartService.java
+│   │   │           │   ├── CartView.java
+│   │   │           │   └── UpdateCartItemRequest.java
+│   │   │           ├── catalog
+│   │   │           │   ├── Category.java
+│   │   │           │   ├── CategoryController.java
+│   │   │           │   ├── CategoryRepository.java
+│   │   │           │   ├── FulfilmentType.java
+│   │   │           │   ├── HaversineUtil.java
+│   │   │           │   ├── ImageStorage.java
+│   │   │           │   ├── LocalImageStorage.java
+│   │   │           │   ├── Product.java
+│   │   │           │   ├── ProductController.java
+│   │   │           │   ├── ProductImage.java
+│   │   │           │   ├── ProductImageRepository.java
+│   │   │           │   ├── ProductPhotoController.java
+│   │   │           │   ├── ProductPublicController.java
+│   │   │           │   ├── ProductQueryService.java
+│   │   │           │   ├── ProductRepository.java
+│   │   │           │   ├── ProductService.java
+│   │   │           │   └── dto
+│   │   │           │       ├── ProductRequest.java
+│   │   │           │       ├── ProductResponse.java
+│   │   │           │       └── ProductSearchResult.java
+│   │   │           ├── common
+│   │   │           │   ├── dto
+│   │   │           │   │   └── ApiResponse.java
+│   │   │           │   └── exception
+│   │   │           │       ├── BadRequestException.java
+│   │   │           │       ├── ConflictException.java
+│   │   │           │       ├── GlobalExceptionHandler.java
+│   │   │           │       ├── ResourceNotFoundException.java
+│   │   │           │       └── UnauthorizedException.java
+│   │   │           ├── config
+│   │   │           │   ├── JwtAuthFilter.java
+│   │   │           │   ├── SecurityConfig.java
+│   │   │           │   └── WebConfig.java
+│   │   │           ├── health
+│   │   │           │   └── HealthController.java
+│   │   │           ├── notification
+│   │   │           │   ├── Notification.java
+│   │   │           │   ├── NotificationController.java
+│   │   │           │   ├── NotificationRepository.java
+│   │   │           │   └── NotificationService.java
+│   │   │           ├── order
+│   │   │           │   ├── FulfilmentMode.java
+│   │   │           │   ├── Order.java
+│   │   │           │   ├── OrderController.java
+│   │   │           │   ├── OrderItem.java
+│   │   │           │   ├── OrderItemRepository.java
+│   │   │           │   ├── OrderRepository.java
+│   │   │           │   ├── OrderService.java
+│   │   │           │   ├── OrderStatus.java
+│   │   │           │   ├── OrderStatusValidator.java
+│   │   │           │   └── dto
+│   │   │           │       ├── OrderItemResponse.java
+│   │   │           │       ├── OrderResponse.java
+│   │   │           │       └── UpdateOrderStatusRequest.java
+│   │   │           ├── payment
+│   │   │           │   ├── CheckoutController.java
+│   │   │           │   ├── CheckoutInitiateRequest.java
+│   │   │           │   ├── CheckoutInitiateResponse.java
+│   │   │           │   ├── PaiseConverter.java
+│   │   │           │   ├── Payment.java
+│   │   │           │   ├── PaymentController.java
+│   │   │           │   ├── PaymentExceptionHandler.java
+│   │   │           │   ├── PaymentItem.java
+│   │   │           │   ├── PaymentItemRepository.java
+│   │   │           │   ├── PaymentPathExceptionHandler.java
+│   │   │           │   ├── PaymentRepository.java
+│   │   │           │   ├── PaymentService.java
+│   │   │           │   ├── PaymentStatus.java
+│   │   │           │   ├── PaymentStatusResponse.java
+│   │   │           │   ├── PaymentStatusService.java
+│   │   │           │   ├── PaymentWebhookService.java
+│   │   │           │   ├── RazorpayException.java
+│   │   │           │   ├── RazorpayOrderResponse.java
+│   │   │           │   ├── RazorpayService.java
+│   │   │           │   ├── RazorpaySignatureVerifier.java
+│   │   │           │   ├── RazorpayWebhookEvent.java
+│   │   │           │   └── WebhookController.java
+│   │   │           ├── review
+│   │   │           │   ├── Review.java
+│   │   │           │   ├── ReviewController.java
+│   │   │           │   ├── ReviewRepository.java
+│   │   │           │   ├── ReviewService.java
+│   │   │           │   └── dto
+│   │   │           │       ├── CreateReviewRequest.java
+│   │   │           │       └── ReviewResponse.java
+│   │   │           ├── seller
+│   │   │           │   ├── SellerController.java
+│   │   │           │   ├── SellerProfile.java
+│   │   │           │   ├── SellerProfileRepository.java
+│   │   │           │   ├── SellerService.java
+│   │   │           │   └── dto
+│   │   │           │       ├── SellerProfileRequest.java
+│   │   │           │       └── SellerProfileResponse.java
+│   │   │           ├── support
+│   │   │           │   ├── SupportController.java
+│   │   │           │   ├── SupportQuery.java
+│   │   │           │   ├── SupportRepository.java
+│   │   │           │   └── SupportService.java
+│   │   │           ├── user
+│   │   │           │   ├── User.java
+│   │   │           │   ├── UserController.java
+│   │   │           │   ├── UserRepository.java
+│   │   │           │   ├── UserService.java
+│   │   │           │   └── dto
+│   │   │           │       ├── UpdateUserRequest.java
+│   │   │           │       └── UserProfileResponse.java
+│   │   │           └── verification
+│   │   │               ├── VerificationController.java
+│   │   │               ├── VerificationRepository.java
+│   │   │               ├── VerificationRequest.java
+│   │   │               └── VerificationService.java
+│   │   └── resources
+│   │       ├── application-dev.yaml
+│   │       ├── application-prod.yaml
+│   │       ├── application.yaml
+│   │       └── db
+│   │           └── migration
+│   │               ├── V1__init_schema.sql
+│   │               ├── V2__payment_checkout_snapshot.sql
+│   │               └── V3__seed_categories.sql
+│   └── test
+│       └── java
+│           └── com
+│               └── gharse
+│                   ├── GharSeBackendApplicationTests.java
+│                   ├── cart
+│                   │   └── CartServiceTest.java
+│                   ├── order
+│                   │   ├── OrderHttpTest.java
+│                   │   ├── OrderMySqlTest.java
+│                   │   ├── OrderServiceTest.java
+│                   │   └── OrderStatusValidatorTest.java
+│                   ├── payment
+│                   │   ├── PaiseConverterTest.java
+│                   │   ├── PaymentServiceTest.java
+│                   │   ├── PaymentStatusServiceTest.java
+│                   │   ├── PaymentTest.java
+│                   │   ├── PaymentWebhookServiceTest.java
+│                   │   ├── RazorpayServiceTest.java
+│                   │   ├── RazorpaySignatureVerifierTest.java
+│                   │   ├── RazorpayWebhookEventTest.java
+│                   │   └── WebhookControllerTest.java
+│                   └── review
+│                       └── ReviewServiceTest.java
+└── uploads
+    └── products
+        ├── 33952179-1840-4912-abcf-1ee302fc0e83.png
+        ├── a3a95b00-db20-4a41-9025-c51c2cf347f4.png
+        └── b90d4258-bb0a-4a0a-94dc-4af2c08d16d9.png

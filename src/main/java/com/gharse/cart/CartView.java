@@ -1,6 +1,7 @@
 package com.gharse.cart;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public record CartView(
@@ -15,7 +16,8 @@ public record CartView(
             BigDecimal unitPrice,
             int quantity,
             BigDecimal lineTotal,
-            boolean available) {
+            boolean available,
+            LocalDate estimatedReadyDate) {
     }
 
     public static CartView empty() {

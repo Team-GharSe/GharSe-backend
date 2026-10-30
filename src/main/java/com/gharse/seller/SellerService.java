@@ -5,6 +5,7 @@ import com.gharse.auth.dto.AuthResponse;
 import com.gharse.common.exception.ConflictException;
 import com.gharse.common.exception.ResourceNotFoundException;
 import com.gharse.common.exception.UnauthorizedException;
+import com.gharse.review.ReviewRepository;
 import com.gharse.seller.dto.SellerProfileRequest;
 import com.gharse.seller.dto.SellerProfileResponse;
 import com.gharse.user.User;
@@ -12,17 +13,24 @@ import com.gharse.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
 @Service
 public class SellerService {
 
     private final SellerProfileRepository sellers;
     private final UserRepository users;
     private final AuthService auth;
+    private final ReviewRepository reviews;
 
-    public SellerService(SellerProfileRepository sellers, UserRepository users, AuthService auth) {
+    public SellerService(SellerProfileRepository sellers, UserRepository users,
+                         AuthService auth, ReviewRepository reviews) {
         this.sellers = sellers;
         this.users = users;
         this.auth = auth;
+        this.reviews = reviews;
     }
 
     /** Makes the current user a seller and returns a new token that carries the SELLER role. */
@@ -50,9 +58,20 @@ public class SellerService {
         return SellerProfileResponse.from(profile);
     }
 
+    @Transactional(readOnly = true)
     public SellerProfileResponse publicProfile(Long sellerProfileId) {
         SellerProfile profile = sellers.findById(sellerProfileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found."));
-        return SellerProfileResponse.from(profile);
+
+        List<Object[]> rows = reviews.aggregateForSeller(sellerProfileId);
+        Object[] row = rows.isEmpty() ? new Object[] { null, 0L } : rows.get(0);
+
+        Double avg = (Double) row[0];
+        long count = ((Number) row[1]).longValue();
+        BigDecimal rounded = avg == null
+                ? null
+                : BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP);
+
+        return SellerProfileResponse.of(profile, rounded, count);
     }
 }

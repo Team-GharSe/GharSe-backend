@@ -4,6 +4,7 @@ import com.gharse.auth.AuthenticatedUser;
 import com.gharse.catalog.dto.ProductRequest;
 import com.gharse.catalog.dto.ProductResponse;
 import com.gharse.common.dto.ApiResponse;
+import com.gharse.catalog.dto.BacklogItem;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,12 @@ public class ProductController {
 
     public ProductController(ProductService service) {
         this.service = service;
+    }
+
+    @GetMapping("/seller/me/backlog")
+    @PreAuthorize("hasRole('SELLER')")
+    public ApiResponse<List<BacklogItem>> backlog(@AuthenticationPrincipal AuthenticatedUser user) {
+        return ApiResponse.ok(service.backlog(user));
     }
 
     @PostMapping("/products")

@@ -7,6 +7,7 @@ import com.gharse.common.exception.BadRequestException;
 import com.gharse.common.exception.ResourceNotFoundException;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
+import com.gharse.catalog.dto.BacklogItem;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,17 +24,20 @@ public class ProductService {
     private final CategoryRepository categories;
     private final SellerProfileRepository sellers;
     private final ImageStorage storage;
+    private final ProductQueryService queries;
 
     public ProductService(ProductRepository products,
                           ProductImageRepository images,
                           CategoryRepository categories,
                           SellerProfileRepository sellers,
-                          ImageStorage storage) {
+                          ImageStorage storage,
+                          ProductQueryService queries) {
         this.products = products;
         this.images = images;
         this.categories = categories;
         this.sellers = sellers;
         this.storage = storage;
+        this.queries = queries;
     }
 
     @Transactional
@@ -45,6 +49,13 @@ public class ProductService {
         product.setSellerProfileId(seller.getId());
         apply(product, req);
         return toResponse(products.save(product));
+    }
+
+    /** Seller backlog for the logged-in seller. Ownership is resolved here, like listMine. */
+    @Transactional(readOnly = true)
+    public List<BacklogItem> backlog(AuthenticatedUser user) {
+        SellerProfile seller = currentSeller(user);
+        return queries.sellerBacklog(seller.getId());
     }
 
     @Transactional

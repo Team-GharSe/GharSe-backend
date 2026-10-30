@@ -1,5 +1,6 @@
 package com.gharse.cart;
 
+import com.gharse.catalog.EtaCalculator;
 import com.gharse.catalog.Product;
 import com.gharse.catalog.ProductRepository;
 import com.gharse.common.exception.ConflictException;
@@ -31,11 +32,12 @@ class CartServiceTest {
     private final CartItemRepository items = mock(CartItemRepository.class);
     private final ProductRepository products = mock(ProductRepository.class);
     private final SellerProfileRepository sellers = mock(SellerProfileRepository.class);
+    private final EtaCalculator etaCalculator = mock(EtaCalculator.class);
     private CartService service;
 
     @BeforeEach
     void setUp() {
-        service = new CartService(carts, items, products, sellers);
+        service = new CartService(carts, items, products, sellers, etaCalculator);
         when(carts.save(any(Cart.class))).thenAnswer(inv -> {
             Cart c = inv.getArgument(0);
             ReflectionTestUtils.setField(c, "id", CART_ID);

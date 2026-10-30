@@ -11,6 +11,21 @@ import java.math.BigDecimal;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+
+    /**
+     * Average rating and review count across all products of one seller.
+     * Returns one row: [avg (Double, null if no reviews), count (Long)].
+     */
+    @Query("""
+        select avg(r.rating), count(r)
+        from Review r, OrderItem i, Product p
+        where r.orderItemId = i.id
+          and i.productId = p.id
+          and p.sellerProfileId = :sellerProfileId
+        """)
+    List<Object[]> aggregateForSeller(@Param("sellerProfileId") Long sellerProfileId);
+
+
     /** Reviews of a product, newest first. Pass a PageRequest to cap the size. */
     @Query("""
             select r
