@@ -35,3 +35,22 @@ java -jar build/libs/GharSe-backend-0.0.1-SNAPSHOT.jar
 ## Testing
 - Every endpoint must be independently testable via Postman (NFR13).
 - Global exception handler returns standardized JSON (see `ApiResponse.java`).
+
+## Optional: real email notifications
+
+By default, order-status notifications are only logged, not sent. You don't need anything below to run the app or the tests.
+
+To send real email through Gmail, set these environment variables before starting the app:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `NOTIFICATIONS_EMAIL_ENABLED` | Set to `true` to send real email | `false` |
+| `GMAIL_USERNAME` | The Gmail address that sends the mail | (none) |
+| `GMAIL_APP_PASSWORD` | A 16-character Google app password for that account | (none) |
+
+Rules:
+
+- Never commit the app password, and never paste it into chat or screenshots.
+- If `NOTIFICATIONS_EMAIL_ENABLED=true` and either credential is missing, the app refuses to start. This is intentional.
+- SMS is always simulated in Phase 1 (logged only).
+- To create an app password: sign in to the Gmail account, enable 2-Step Verification, then open the App Passwords page and create one.
