@@ -28,6 +28,24 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
                          @Param("openStatuses") List<OrderStatus> openStatuses);
 
     /**
+     * Minutes of production already queued for one seller: the sum, over all of that seller's
+     * made-to-order items in the given order statuses, of quantity x the product's minutes per unit.
+     * One seller works one queue, so this covers every listing, not a single product.
+     * Live sum, never a stored counter.
+     */
+    @Query("""
+            select coalesce(sum(i.quantity * coalesce(p.productionTimeMinutesPerUnit, 0)), 0)
+            from OrderItem i, GharSeOrder ord, Product p
+            where i.orderId = ord.id
+              and i.productId = p.id
+              and ord.sellerProfileId = :sellerId
+              and ord.status in :openStatuses
+              and p.fulfilmentType = com.gharse.catalog.FulfilmentType.MADE_TO_ORDER
+            """)
+    long sumBacklogMinutes(@Param("sellerId") Long sellerId,
+                           @Param("openStatuses") List<OrderStatus> openStatuses);
+
+    /**
      * Totals for one seller over [from, to). One row: [revenue (BigDecimal), units (Long), orders (Long)].
      * Revenue = sum of price snapshot x quantity. Uses snapshots, so later price edits don't change history.
      */

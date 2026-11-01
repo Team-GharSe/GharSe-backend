@@ -1,18 +1,18 @@
 package com.gharse.catalog;
 
+import com.gharse.catalog.dto.BacklogItem;
 import com.gharse.catalog.dto.ProductResponse;
 import com.gharse.catalog.dto.ProductSearchResult;
+import com.gharse.common.exception.BadRequestException;
 import com.gharse.common.exception.ResourceNotFoundException;
 import com.gharse.order.OrderItemRepository;
 import com.gharse.order.OrderStatus;
 import com.gharse.seller.SellerProfile;
 import com.gharse.seller.SellerProfileRepository;
-import com.gharse.catalog.dto.BacklogItem;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -23,20 +23,25 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ProductQueryService {
 
+    /** Same per-line cap as the cart, so the product page can quote any quantity a cart can hold. */
+    static final int MAX_ETA_QUANTITY = 1000;
+
     private final ProductRepository products;
     private final ProductImageRepository images;
     private final CategoryRepository categories;
     private final SellerProfileRepository sellers;
     private final OrderItemRepository orderItems;
+    private final EtaCalculator etaCalculator;
 
     public ProductQueryService(ProductRepository products, ProductImageRepository images,
                                CategoryRepository categories, SellerProfileRepository sellers,
-                               OrderItemRepository orderItems) {
+                               OrderItemRepository orderItems, EtaCalculator etaCalculator) {
         this.products = products;
         this.images = images;
         this.categories = categories;
         this.sellers = sellers;
         this.orderItems = orderItems;
+        this.etaCalculator = etaCalculator;
     }
 
     /** Filters, Haversine radius, and sort. Pagination is applied after sorting in memory. */
@@ -74,10 +79,14 @@ public class ProductQueryService {
     }
 
     /**
-     * READY_STOCK: { inStock, quantityRemaining }.
-     * MADE_TO_ORDER: { estimatedReadyDate }, based on the live backlog of CONFIRMED and IN_PRODUCTION orders.
+     * READY_STOCK: { inStock, quantityRemaining } (quantity is ignored).
+     * MADE_TO_ORDER: { estimatedReadyDate } for the given quantity, from the shared EtaCalculator, so the
+     * product page and the cart always agree for the same quantity.
      */
-    public Map<String, Object> eta(Long id) {
+    public Map<String, Object> eta(Long id, int quantity) {
+        if (quantity < 1 || quantity > MAX_ETA_QUANTITY) {
+            throw new BadRequestException("Quantity must be between 1 and " + MAX_ETA_QUANTITY + ".");
+        }
         Product p = products.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found."));
 
@@ -85,11 +94,7 @@ public class ProductQueryService {
             int qty = p.getInventoryQty() == null ? 0 : p.getInventoryQty();
             return Map.of("inStock", qty > 0, "quantityRemaining", qty);
         }
-        long backlogUnits = orderItems.sumBacklogUnits(p.getId(),
-                List.of(OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION));
-        long minutes = (backlogUnits + 1) * p.getProductionTimeMinutesPerUnit();
-        LocalDate ready = LocalDate.now().plusDays((minutes + 60 * 24 - 1) / (60 * 24));
-        return Map.of("estimatedReadyDate", ready.toString());
+        return Map.of("estimatedReadyDate", etaCalculator.estimatedReadyDate(p, quantity).toString());
     }
 
     /** Reviews belong to module H. Returns an empty list until that module ships. */
@@ -164,21 +169,25 @@ public class ProductQueryService {
                 p.isActive(), inStock, photos.isEmpty() ? null : photos.get(0).imageUrl(), photos);
     }
 
-    /** Seller backlog: committed units and estimated clear date for each made-to-order listing. */
+    /**
+     * Seller backlog: committed units per made-to-order listing. The seller works one queue, so every
+     * row carries the same estimated clear date: the date the whole queue clears (same rule as the ETA).
+     */
     public List<BacklogItem> sellerBacklog(Long sellerProfileId) {
+        List<Product> listings = products.findBySellerProfileIdAndActiveTrueAndFulfilmentType(
+                sellerProfileId, FulfilmentType.MADE_TO_ORDER);
+        if (listings.isEmpty()) {
+            return List.of();
+        }
         List<OrderStatus> open = List.of(OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION);
-        LocalDate today = LocalDate.now();
+        String queueClearDate = etaCalculator.queueClearDate(sellerProfileId).toString();
 
-        return products.findBySellerProfileIdAndActiveTrueAndFulfilmentType(
-                        sellerProfileId, FulfilmentType.MADE_TO_ORDER)
-                .stream()
+        return listings.stream()
                 .map(p -> {
                     long units = orderItems.sumBacklogUnits(p.getId(), open);
                     int perUnit = p.getProductionTimeMinutesPerUnit() == null
                             ? 0 : p.getProductionTimeMinutesPerUnit();
-                    long minutes = units * perUnit;
-                    LocalDate clear = today.plusDays((minutes + 60 * 24 - 1) / (60 * 24));
-                    return new BacklogItem(p.getId(), p.getName(), units, perUnit, clear.toString());
+                    return new BacklogItem(p.getId(), p.getName(), units, perUnit, queueClearDate);
                 })
                 .toList();
     }
